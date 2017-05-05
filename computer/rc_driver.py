@@ -7,6 +7,11 @@ import cv2
 import numpy as np
 import math
 
+from keras.models import load_model
+import h5py
+
+use_tensorflow = True
+
 # distance data measured by ultrasonic sensor
 sensor_data = " "
 
@@ -23,6 +28,18 @@ class NeuralNetwork(object):
 
     def predict(self, samples):
         ret, resp = self.model.predict(samples)
+        return resp.argmax(-1)
+
+
+class TensorFlowCNN(object):
+    def __init__(self):
+        self.model = None
+
+    def create(self):
+        self.model = load_model('model.h5')
+
+    def predict(self, samples):
+        resp = self.model.predict(samples)
         return resp.argmax(-1)
 
 
@@ -78,8 +95,8 @@ class ObjectDetection(object):
         v = 0
 
         # minimum value to proceed traffic light state validation
-        threshold = 150     
-        
+        threshold = 150
+
         # detection
         cascade_obj = cascade_classifier.detectMultiScale(
             gray_image,
@@ -98,27 +115,27 @@ class ObjectDetection(object):
             # stop sign
             if width/height == 1:
                 cv2.putText(image, 'STOP', (x_pos, y_pos-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            
+
             # traffic lights
             else:
                 roi = gray_image[y_pos+10:y_pos + height-10, x_pos+10:x_pos + width-10]
                 mask = cv2.GaussianBlur(roi, (25, 25), 0)
                 (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(mask)
-                
+
                 # check if light is on
                 if maxVal - minVal > threshold:
                     cv2.circle(roi, maxLoc, 5, (255, 0, 0), 2)
-                    
+
                     # Red light
                     if 1.0/8*(height-30) < maxLoc[1] < 4.0/8*(height-30):
                         cv2.putText(image, 'Red', (x_pos+5, y_pos-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
                         self.red_light = True
-                    
+
                     # Green light
                     elif 5.5/8*(height-30) < maxLoc[1] < height-30:
                         cv2.putText(image, 'Green', (x_pos+5, y_pos - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                         self.green_light = True
-    
+
                     # yellow light
                     #elif 4.0/8*(height-30) < maxLoc[1] < 5.5/8*(height-30):
                     #    cv2.putText(image, 'Yellow', (x_pos+5, y_pos - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
@@ -150,8 +167,12 @@ class VideoStreamHandler(SocketServer.StreamRequestHandler):
     h2 = 15.5 - 10
 
     # create neural network
-    model = NeuralNetwork()
-    model.create()
+    if use_tensorflow:
+        model = TensorFlowCNN()
+        model.create()
+    else:
+        model = NeuralNetwork()
+        model.create()
 
     obj_detection = ObjectDetection()
     rc_car = RCControl()
@@ -207,7 +228,7 @@ class VideoStreamHandler(SocketServer.StreamRequestHandler):
 
                     # reshape image
                     image_array = half_gray.reshape(1, 38400).astype(np.float32)
-                    
+
                     # neural network makes prediction
                     prediction = self.model.predict(image_array)
 
@@ -215,7 +236,7 @@ class VideoStreamHandler(SocketServer.StreamRequestHandler):
                     if sensor_data is not None and sensor_data < 30:
                         print("Stop, obstacle in front")
                         self.rc_car.stop()
-                    
+
                     elif 0 < self.d_stop_sign < 25 and stop_sign_active:
                         print("Stop sign ahead")
                         self.rc_car.stop()
@@ -246,7 +267,7 @@ class VideoStreamHandler(SocketServer.StreamRequestHandler):
                         elif self.obj_detection.yellow_light:
                             print("Yellow light flashing")
                             pass
-                        
+
                         self.d_light = 30
                         self.obj_detection.red_light = False
                         self.obj_detection.green_light = False

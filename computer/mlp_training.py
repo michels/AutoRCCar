@@ -27,6 +27,14 @@ train_labels = label_array[1:, :]
 print train.shape
 print train_labels.shape
 
+def show_image(sample, delay=500):
+    sample = sample.reshape((120, 320)).astype(np.uint8)
+    cv2.imshow('image', sample)
+    cv2.waitKey(delay=delay)
+
+# for sample in train:
+#     show_image(sample)
+
 e00 = cv2.getTickCount()
 time0 = (e00 - e0)/ cv2.getTickFrequency()
 print 'Loading image duration:', time0

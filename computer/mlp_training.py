@@ -69,17 +69,18 @@ if use_tensorflow:
         Reshape((320, 120), input_shape=(train[0].shape)),
         # Conv2D(24, kernel_size=(3, 3), strides=(3, 3), activation='relu', input_shape=input_shape),
         Conv1D(24, kernel_size=3, strides=3, activation='relu'),
+        Dropout(0.5),
         # Conv2D(36, kernel_size=(3, 3), strides=(3, 3), activation='relu'),
         Conv1D(32, kernel_size=3, strides=3, activation='relu'),
+        Dropout(0.5),
         Conv1D(48, kernel_size=3, strides=3, activation='relu'),
         Flatten(),
-        Dense(10),
         Dense(4)
     ])
 
     model.compile(loss='mse', optimizer='adam')
 
-    early_stopping = EarlyStopping(monitor='val_loss')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=2)
     history = model.fit(train, train_labels, nb_epoch=120, validation_split=0.2, callbacks=[early_stopping])
 
     model.save('model.h5')

@@ -27,13 +27,26 @@ train_labels = label_array[1:, :]
 print train.shape
 print train_labels.shape
 
-def show_image(sample, delay=500):
+show_images = True
+export_images = False
+should_train = False
+
+def show_image(sample, delay=200):
     sample = sample.reshape((120, 320)).astype(np.uint8)
     cv2.imshow('image', sample)
     cv2.waitKey(delay=delay)
 
-# for sample in train:
-#     show_image(sample)
+if show_images:
+    for sample in train:
+        show_image(sample)
+
+if export_images:
+    for i, sample in enumerate(train):
+        sample = sample.reshape((120, 320)).astype(np.uint8)
+        cv2.imwrite('export/' + str(i) + '.png', sample)
+
+if not should_train:
+    exit('should not train')
 
 e00 = cv2.getTickCount()
 time0 = (e00 - e0)/ cv2.getTickFrequency()
